@@ -1,4 +1,3 @@
-```markdown
 # Perception Audio Codec Prototype
 
 ![Perception Audio Codec Prototype](image.jpg)
@@ -41,4 +40,3 @@ python perceptual_codec_5_6.py selftest [outdir]
 - The masking model is a sketch (fixed spreading slopes, one tonality offset). It will not match a tuned AAC or MP3 encoder.
 - Per-frame Huffman tables spend bits that a shared codebook would save. The reservoir accounts for that overhead; low targets get coarse steps.
 - Perfect reconstruction holds for the unquantized transform. Quantization noise is what the threshold and the rate loop allow.
-```
