@@ -1,0 +1,48 @@
+The new MDCT scaling does not invert, and it is not compatible with a 5.5 decoder. The original unnormalized pair is the one that reconstructs.
+
+**Scaling**
+
+A Kaiser–Bessel-derived window already satisfies \(w[n]^2 + w[n+M]^2 = 1\). Dividing it by \(\sqrt{2}\) makes that sum \(1/2\), so alias cancellation no longer holds.
+
+The 5.5 pair that does reconstruct is:
+
+- forward: \(\sum (x w) \cos(\cdot)\)
+- inverse: \((2/M) \sum X \cos(\cdot)\), then window and overlap-add
+
+Those gains multiply to \(2/M\). The 5.5a pair multiplies to something else:
+
+- forward \(\times \sqrt{2/M}\)
+- inverse \(\times \sqrt{2}\)
+- product \(2/\sqrt{M}\), and the window is also wrong
+
+A normalized pair that still has perfect reconstruction keeps the unmodified window and uses the same factor on both sides:
+
+```python
+s = np.sqrt(2.0 / self.M)
+
+def forward(self, x_frame):
+    return np.sum((x_frame * self.window)[:, None] * self.basis, axis=0) * s
+
+def inverse(self, X):
+    y = s * np.sum(X[None, :] * self.basis, axis=1)
+    yw = y * self.window
+    out = self.prev_imdct + yw[: self.M]
+    self.prev_imdct = yw[self.M :].copy()
+    return out
+```
+
+Check the middle of a multi-frame overlap-add (skip the first and last \(M\) samples). Error there should be numerical noise, not a gain or alias floor.
+
+**Decoder compatibility**
+
+`PCD5` plus the 5.5 inverse assumes the unnormalized coefficients. If you change the forward gain, old decoders play back at the wrong level and do not cancel aliases. Either keep the 5.5 transform and only clamp and rate-control, or change the magic and ship the matching inverse. Do not claim layout compatibility after a scale change.
+
+Power thresholds move with the forward gain. If coefficients are multiplied by \(s\), mask and ATH powers in that domain must be multiplied by \(s^2 = 2/M\) (or the SPL offset shifted by \(10\log_{10}(2/M)\)). Leaving the 5.5 ATH formula in place with the new transform mis-sets every band.
+
+**Index clamp**
+
+Clamping `round(c/delta)` to \(\pm 2047\) after the step search is extra distortion the threshold model did not allow. If the alphabet must stay inside that range, raise `delta` until `max(abs(round(c/delta))) <= 2047`, then keep that step. Dequant `idx * step` then matches what the encoder stored.
+
+**Rate loop**
+
+One scale pick from the sign of the reservoir is still not iterative. For each frame, estimate the bits you will actually write (steps, symbol count, bit length, and either a per-frame codebook or a frozen table), then re-quantize with a higher or lower threshold scale until the estimate is near `target_bits_per_frame + reservoir_draw`. Commit symbols only after that. A global Huffman table built after all frames are frozen cannot be what the loop measured.
