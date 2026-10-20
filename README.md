@@ -34,6 +34,21 @@ python perceptual_codec_5_6.py selftest [outdir]
 
 `target_kbps` defaults to 96. `selftest` checks middle-region MDCT perfect reconstruction, then encodes and decodes a two-second tone-plus-noise file and prints SNR, RMS ratio, and achieved bitrate.
 
+## PCD6 package adapter
+
+Use `perception_audio_codec.PCD6Encoder` to call the existing MDCT/TDAC + psychoacoustic + quantization + RLE/Huffman + rate-control implementation from Python:
+
+```python
+from perception_audio_codec import PCD6Encoder
+
+codec = PCD6Encoder(target_kbps=96.0)
+codec.encode_file("input.wav", "output.pcd6")
+codec.decode_file("output.pcd6", "roundtrip.wav")
+codec.selftest("codec-selftest")
+```
+
+This adapter intentionally delegates to `perceptual_codec_5_6.py` instead of creating a second incompatible PCD6 implementation. It is file-oriented and offline/worker-thread only, not a real-time streaming API. See [Docs/PCD6_ENCODER.md](Docs/PCD6_ENCODER.md).
+
 ## Processor API
 
 The `perception_audio_codec` package provides validated PCM preparation and deterministic overlapping frame iteration for callers integrating the codec pipeline. It rejects empty/non-finite audio, explicitly defines mono channel selection, converts integer PCM to normalized floating point, and marks final-frame padding. See [Docs/PROCESSOR_API.md](Docs/PROCESSOR_API.md).
@@ -56,4 +71,4 @@ A separate offline baseline encoder is available in `perception_audio_codec.Perc
 - The masking model is a sketch (fixed spreading slopes, one tonality offset). It will not match a tuned AAC or MP3 encoder.
 - Per-frame Huffman tables spend bits that a shared codebook would save. The reservoir accounts for that overhead; low targets get coarse steps.
 - Perfect reconstruction holds for the unquantized transform. Quantization noise is what the threshold and the rate loop allow.
-- The new processor helper is an input/framing boundary; it is not a real-time audio callback or a claim of codec quality.
+- The processor helper is an input/framing boundary; it is not a real-time audio callback or a claim of codec quality.
