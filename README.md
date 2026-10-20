@@ -1,6 +1,6 @@
 # Perception Audio Codec Prototype
 
-![Perception Audio Codec Prototype](image.jpg)
+![Perception Audio Codec Prototype](1792524791022.jpg)
 
 Pure Python, educational and experimental. MDCT/TDAC, a simple psychoacoustic model, perceptual quantization, run-length coding, and Huffman.
 
