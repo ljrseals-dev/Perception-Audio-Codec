@@ -38,10 +38,10 @@ class EncoderConfig:
     channel_policy: ChannelPolicy = "first"
 
     def __post_init__(self) -> None:
-        if self.frame_size < 64 or self.frame_size & (self.frame_size - 1):
-            raise ValueError("frame_size must be a power of two >= 64")
-        if self.band_count < 1 or self.band_count > self.frame_size:
-            raise ValueError("band_count must be in [1, frame_size]")
+        if self.frame_size < 64 or self.frame_size > 32768 or self.frame_size & (self.frame_size - 1):
+            raise ValueError("frame_size must be a power of two in [64, 32768]")
+        if self.band_count < 1 or self.band_count > min(self.frame_size, 255):
+            raise ValueError("band_count must be in [1, min(frame_size, 255)]")
         if not np.isfinite(self.quality) or not 0.0 <= self.quality <= 1.0:
             raise ValueError("quality must be finite and in [0, 1]")
         if self.channel_policy not in ("first", "average"):
@@ -80,6 +80,8 @@ class PerceptionEncoder:
     def encode(self, samples: np.ndarray, sample_rate: int) -> EncodeResult:
         """Encode mono or multichannel PCM-like samples into a PAC1 byte stream."""
         audio = self._processor.prepare(samples, sample_rate)
+        if audio.samples.size > 0xFFFFFFFF:
+            raise ValueError("input is too long for the PAC1 sample-count field")
         frame_size = self.config.frame_size
         frame_count = (audio.samples.size + frame_size - 1) // frame_size
         header = _HEADER.pack(
