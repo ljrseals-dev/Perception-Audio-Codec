@@ -72,3 +72,17 @@ A separate offline baseline encoder is available in `perception_audio_codec.Perc
 - Per-frame Huffman tables spend bits that a shared codebook would save. The reservoir accounts for that overhead; low targets get coarse steps.
 - Perfect reconstruction holds for the unquantized transform. Quantization noise is what the threshold and the rate loop allow.
 - The processor helper is an input/framing boundary; it is not a real-time audio callback or a claim of codec quality.
+
+## LewSpEw integrated worker pipeline
+
+The package now exports `PCD6Worker`, a bounded worker-thread wrapper that groups PCD6 file encode, decode, and self-test jobs behind Futures:
+
+```python
+from perception_audio_codec import PCD6Worker
+
+with PCD6Worker(target_kbps=96, max_pending=8) as pipeline:
+    result = pipeline.encode_file("input.wav", "output.pcd6")
+    result.result()  # wait outside any audio callback
+```
+
+The worker is an offline orchestration layer. It uses Python's synchronized queue, **not a lock-free SPSC ring**, and must not be called from a WASAPI/ASIO real-time callback. The native in-memory PCM interface, lock-free SPSC rings, and hardware loopback validation remain separate work. See [Docs/LEWSPEW_PIPELINE.md](Docs/LEWSPEW_PIPELINE.md).
