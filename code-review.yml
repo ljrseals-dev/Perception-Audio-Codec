@@ -1,0 +1,4 @@
+- name: xAI Code Review
+  uses: tarmojussila/xai-code-review@v0.1.1
+  with:
+    XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
