@@ -44,6 +44,12 @@ Run its tests with:
 python -m unittest discover -s tests -v
 ```
 
+## PAC1 encoder API
+
+A separate offline baseline encoder is available in `perception_audio_codec.PerceptionEncoder`. It validates PCM, applies an orthonormal block DCT-II, band-wise adaptive quantization, and versioned PAC1 serialization with zlib compression. See [Docs/PAC1_ENCODER.md](Docs/PAC1_ENCODER.md) for usage and format limits.
+
+**PAC1 is not PCD6.** This baseline uses block DCT-II rather than MDCT/TDAC, and does not claim a calibrated psychoacoustic model or fixed target bitrate. Codec work is intended for offline/worker-thread execution, never a real-time audio callback.
+
 ## Limits
 
 - Mono only. Stereo input keeps channel 0 by default; the helper's average-downmix mode is explicit and opt-in.
