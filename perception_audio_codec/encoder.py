@@ -82,6 +82,8 @@ class PerceptionEncoder:
         audio = self._processor.prepare(samples, sample_rate)
         if audio.samples.size > 0xFFFFFFFF:
             raise ValueError("input is too long for the PAC1 sample-count field")
+        if audio.sample_rate > 0xFFFFFFFF:
+            raise ValueError("sample_rate is too large for the PAC1 header")
         frame_size = self.config.frame_size
         frame_count = (audio.samples.size + frame_size - 1) // frame_size
         header = _HEADER.pack(
