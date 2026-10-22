@@ -12,8 +12,15 @@ jobs:
   review:
     name: Review
     runs-on: ubuntu-latest
+    env:
+      XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
     steps:
       - name: xAI Code Review
+        if: ${{ env.XAI_API_KEY != '' }}
         uses: tarmojussila/xai-code-review@v0.1.1
         with:
-          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          XAI_API_KEY: ${{ env.XAI_API_KEY }}
+
+      - name: Explain skipped review
+        if: ${{ env.XAI_API_KEY == '' }}
+        run: echo "::notice::AI review skipped because XAI_API_KEY is not configured; this is not a code-test failure."
